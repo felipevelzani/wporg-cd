@@ -494,7 +494,7 @@ section { margin-bottom: 40px; }
                 <?php echo number_format($profile_count); ?> profiles<?php echo $include_inactive ? '' : ' (active only)'; ?><?php echo $range['days'] !== null ? ' · Registered: ' . esc_html($range['label']) : ''; ?>
                 · Data: <?php echo date('M j, Y', strtotime($data_start_date)); ?> – <?php echo date('M j, Y', strtotime($data_end_date)); ?>
             </div>
-            <a href="https://github.com/felipevelzani/wporg-contributor-dashboard" target="_blank">GitHub</a>
+            <a href="https://github.com/felipevelzani/wporg-cd" target="_blank">GitHub</a>
             <span style="margin: 0 8px;">·</span>
             Interested in contributing? <a href="https://make.wordpress.org/project/2024/12/19/contributor-working-group-update-december-2024/" target="_blank">Learn more</a>
                 </div>
