@@ -240,7 +240,7 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
         }
     }
     
-    $css_url = plugins_url('frontend/dashboard.css', dirname(__FILE__));
+    $css_url = plugin_dir_url(dirname(__FILE__)) . 'frontend/dashboard.css';
     
     ob_start();
     ?>
