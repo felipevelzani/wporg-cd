@@ -26,13 +26,6 @@ function wporgcd_activate_plugin() {
     wporgcd_create_profiles_table();
 }
 
-// TEMP: Rename tables (delete this after running once)
-add_action('admin_init', function() {
-    global $wpdb;
-    $wpdb->query("RENAME TABLE {$wpdb->prefix}contributor_events TO {$wpdb->prefix}wporgcd_events");
-    $wpdb->query("RENAME TABLE {$wpdb->prefix}contributor_profiles TO {$wpdb->prefix}wporgcd_profiles");
-});
-
 // Admin Menu
 add_action('admin_menu', 'wporgcd_admin_menu');
 
