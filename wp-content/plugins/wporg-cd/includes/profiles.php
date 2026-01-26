@@ -187,9 +187,12 @@ function wporgcd_process_profile_batch() {
     
     $batch_processed = 0;
     
+    // Get snapshotted ladders from state (ensures consistency across batches)
+    $ladders = $state['ladders_snapshot'] ?? wporgcd_get_ladders();
+    
     // Process each user in this batch
     foreach ($user_ids as $user_id) {
-        wporgcd_compute_user_profile($user_id);
+        wporgcd_compute_user_profile($user_id, $ladders);
         $batch_processed++;
     }
     
@@ -205,9 +208,11 @@ function wporgcd_process_profile_batch() {
 
 /**
  * Compute profile for a single user (called directly, not scheduled)
+ * 
+ * @param string     $user_id The contributor ID
+ * @param array|null $ladders Optional ladder configuration (uses current config if null)
  */
-
-function wporgcd_compute_user_profile($user_id) {
+function wporgcd_compute_user_profile($user_id, $ladders = null) {
     global $wpdb;
     $events_table = wporgcd_get_table('events');
     $profiles_table = wporgcd_get_table('profiles');
@@ -255,8 +260,8 @@ function wporgcd_compute_user_profile($user_id) {
         $event_counts[$type]['last_date'] = $event->event_created_date;
     }
     
-    // Build ladder journey
-    $ladder_journey = wporgcd_compute_ladder_journey($events, $event_counts);
+    // Build ladder journey (use provided ladders or fetch current)
+    $ladder_journey = wporgcd_compute_ladder_journey($events, $event_counts, $ladders);
     
     // Determine current ladder (last in journey)
     $current_ladder = !empty($ladder_journey) ? end($ladder_journey)['ladder_id'] : null;
@@ -308,12 +313,15 @@ function wporgcd_compute_user_profile($user_id) {
 /**
  * Compute ladder journey from events
  * 
- * @param array $events Array of event objects (sorted by date)
- * @param array $event_counts Running event counts by type
+ * @param array      $events       Array of event objects (sorted by date)
+ * @param array      $event_counts Running event counts by type
+ * @param array|null $ladders      Optional ladder configuration (uses current config if null)
  * @return array Ladder journey array
  */
-function wporgcd_compute_ladder_journey($events, $event_counts) {
-    $ladders = wporgcd_get_ladders();
+function wporgcd_compute_ladder_journey($events, $event_counts, $ladders = null) {
+    if ($ladders === null) {
+        $ladders = wporgcd_get_ladders();
+    }
     
     if (empty($ladders)) {
         return array();
@@ -665,6 +673,9 @@ function wporgcd_start_profile_generation() {
          $date_filter_where"
     );
     
+    // Snapshot current ladders to ensure consistency across all batches
+    $ladders_snapshot = wporgcd_get_ladders();
+    
     // Store generation state
     $state = array(
         'status' => 'processing',
@@ -672,6 +683,7 @@ function wporgcd_start_profile_generation() {
         'total_to_process' => $needing_update,
         'processed' => 0,
         'min_registered_date' => $min_date,
+        'ladders_snapshot' => $ladders_snapshot,
     );
     update_option('wporgcd_profile_generation_state', $state);
     
