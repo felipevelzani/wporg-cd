@@ -311,8 +311,8 @@ section { margin-bottom: 40px; }
 .funnel-arrow { text-align: center; color: var(--light); font-size: 12px; padding: 6px 0; margin-left: 132px; }
 .info-icon { position: relative; display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; background: var(--border); color: var(--muted); font-size: 10px; font-weight: 600; font-style: italic; cursor: help; flex-shrink: 0; }
 .info-icon:hover { background: var(--blue); color: #fff; }
-.info-tip { position: absolute; left: calc(100% + 8px); top: 50%; transform: translateY(-50%); background: var(--text); color: #fff; padding: 10px 12px; border-radius: 6px; font-size: 12px; font-weight: 400; font-style: normal; white-space: nowrap; opacity: 0; visibility: hidden; transition: all 0.15s; z-index: 100; pointer-events: none; }
-.info-tip::after { content: ''; position: absolute; right: 100%; top: 50%; transform: translateY(-50%); border: 5px solid transparent; border-right-color: var(--text); }
+.info-tip { position: absolute; left: 50%; top: calc(100% + 8px); transform: translateX(-50%); background: var(--text); color: #fff; padding: 10px 12px; border-radius: 6px; font-size: 12px; font-weight: 400; font-style: normal; width: max-content; max-width: 280px; opacity: 0; visibility: hidden; transition: all 0.15s; z-index: 100; pointer-events: none; line-height: 1.5; }
+.info-tip::after { content: ''; position: absolute; left: 50%; bottom: 100%; transform: translateX(-50%); border: 5px solid transparent; border-bottom-color: var(--text); }
 .info-icon:hover .info-tip { opacity: 1; visibility: visible; }
 .info-tip strong { color: #fff; }
 .info-tip .req { display: block; padding: 2px 0; }
