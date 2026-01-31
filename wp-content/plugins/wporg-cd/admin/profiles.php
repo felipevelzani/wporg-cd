@@ -14,9 +14,9 @@ function wporgcd_handle_profile_reset() {
         return;
     }
     
-    if (isset($_POST['wporgcd_reset_state']) && check_admin_referer('wporgcd_profiles_nonce')) {
+    if ( isset( $_POST['wporgcd_reset_state'] ) && check_admin_referer( 'wporgcd_profiles_nonce' ) ) {
         wporgcd_reset_profile_generation();
-        wp_redirect(admin_url('admin.php?page=contributor-profiles'));
+        wp_safe_redirect( admin_url( 'admin.php?page=contributor-profiles' ) );
         exit;
     }
 }
@@ -57,7 +57,10 @@ function wporgcd_render_profiles_page() {
     <div class="wrap">
         <h1>Generate Profiles</h1>
         
-        <?php echo $message; ?>
+        <?php
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $message contains safe HTML from this function
+        echo $message;
+        ?>
         
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 20px;">
             <div style="background: #fff; border: 1px solid #ddd; padding: 20px;">
@@ -66,11 +69,11 @@ function wporgcd_render_profiles_page() {
                     <h2 style="margin-top: 0;">⏳ Generation in Progress</h2>
                     
                     <div style="background: #ddd; border-radius: 4px; height: 24px; overflow: hidden; margin: 15px 0;">
-                        <div style="background: #0073aa; height: 100%; width: <?php echo $generation_status['progress']; ?>%;"></div>
+                        <div style="background: #0073aa; height: 100%; width: <?php echo esc_attr( $generation_status['progress'] ); ?>%;"></div>
                     </div>
                     
                     <p>
-                        <strong><?php echo $generation_status['progress']; ?>%</strong> complete
+                        <strong><?php echo esc_html( $generation_status['progress'] ); ?>%</strong> complete
                         (<?php echo number_format($generation_status['processed']); ?> / <?php echo number_format($generation_status['total_to_process']); ?>)
                     </p>
                     

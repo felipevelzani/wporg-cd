@@ -21,18 +21,18 @@ function wporgcd_handle_export() {
     // Export Event Types
     if (isset($_GET['wporgcd_export_event_types'])) {
         check_admin_referer('wporgcd_export_event_types');
-        header('Content-Type: application/json');
-        header('Content-Disposition: attachment; filename="wporgcd-event-types-' . date('Y-m-d') . '.json"');
-        echo wp_json_encode(wporgcd_get_event_types(), JSON_PRETTY_PRINT);
+        header( 'Content-Type: application/json' );
+        header( 'Content-Disposition: attachment; filename="wporgcd-event-types-' . gmdate( 'Y-m-d' ) . '.json"' );
+        echo wp_json_encode( wporgcd_get_event_types(), JSON_PRETTY_PRINT );
         exit;
     }
     
     // Export Ladders
-    if (isset($_GET['wporgcd_export_ladders'])) {
-        check_admin_referer('wporgcd_export_ladders');
-        header('Content-Type: application/json');
-        header('Content-Disposition: attachment; filename="wporgcd-ladders-' . date('Y-m-d') . '.json"');
-        echo wp_json_encode(wporgcd_get_ladders(), JSON_PRETTY_PRINT);
+    if ( isset( $_GET['wporgcd_export_ladders'] ) ) {
+        check_admin_referer( 'wporgcd_export_ladders' );
+        header( 'Content-Type: application/json' );
+        header( 'Content-Disposition: attachment; filename="wporgcd-ladders-' . gmdate( 'Y-m-d' ) . '.json"' );
+        echo wp_json_encode( wporgcd_get_ladders(), JSON_PRETTY_PRINT );
         exit;
     }
 }
@@ -46,9 +46,10 @@ function wporgcd_render_event_types_page() {
     $message = '';
     
     // Handle import
-    if (isset($_POST['wporgcd_import_event_types']) && check_admin_referer('wporgcd_event_types_nonce')) {
-        if (!empty($_FILES['import_file']['tmp_name'])) {
-            $json = file_get_contents($_FILES['import_file']['tmp_name']);
+    if ( isset( $_POST['wporgcd_import_event_types'] ) && check_admin_referer( 'wporgcd_event_types_nonce' ) ) {
+        if ( ! empty( $_FILES['import_file']['tmp_name'] ) ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Reading JSON file content
+            $json = file_get_contents( $_FILES['import_file']['tmp_name'] );
             $data = json_decode($json, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 $message = '<div class="notice notice-error"><p>Invalid JSON format.</p></div>';
@@ -65,9 +66,9 @@ function wporgcd_render_event_types_page() {
     }
     
     // Handle form submissions
-    if (isset($_POST['wporgcd_add_event_type']) && check_admin_referer('wporgcd_event_types_nonce')) {
-        $new_id = sanitize_key($_POST['new_event_id']);
-        $new_title = sanitize_text_field($_POST['new_event_title']);
+    if ( isset( $_POST['wporgcd_add_event_type'] ) && check_admin_referer( 'wporgcd_event_types_nonce' ) ) {
+        $new_id = isset( $_POST['new_event_id'] ) ? sanitize_key( wp_unslash( $_POST['new_event_id'] ) ) : '';
+        $new_title = isset( $_POST['new_event_title'] ) ? sanitize_text_field( wp_unslash( $_POST['new_event_title'] ) ) : '';
         
         if (empty($new_id) || empty($new_title)) {
             $message = '<div class="notice notice-error"><p>Both ID and Title are required.</p></div>';
@@ -80,11 +81,12 @@ function wporgcd_render_event_types_page() {
         }
     }
     
-    if (isset($_POST['wporgcd_update_titles']) && check_admin_referer('wporgcd_event_types_nonce')) {
-        if (!empty($_POST['event_titles']) && is_array($_POST['event_titles'])) {
-            foreach ($_POST['event_titles'] as $id => $title) {
-                if (isset($event_types[$id])) {
-                    $event_types[$id]['title'] = sanitize_text_field($title);
+    if ( isset( $_POST['wporgcd_update_titles'] ) && check_admin_referer( 'wporgcd_event_types_nonce' ) ) {
+        if ( ! empty( $_POST['event_titles'] ) && is_array( $_POST['event_titles'] ) ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Sanitized inside loop
+            foreach ( $_POST['event_titles'] as $id => $title ) {
+                if ( isset( $event_types[ $id ] ) ) {
+                    $event_types[ $id ]['title'] = sanitize_text_field( wp_unslash( $title ) );
                 }
             }
             update_option('wporgcd_event_types', $event_types);
@@ -107,7 +109,10 @@ function wporgcd_render_event_types_page() {
         </form>
         <hr class="wp-header-end">
         
-        <?php echo $message; ?>
+        <?php
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $message contains safe HTML from this function
+        echo $message;
+        ?>
         
         <!-- Add New Event Type -->
         <div style="background: #fff; border: 1px solid #ddd; padding: 20px; margin: 20px 0;">
@@ -181,9 +186,10 @@ function wporgcd_render_ladders_page() {
     $message = '';
     
     // Handle import
-    if (isset($_POST['wporgcd_import_ladders']) && check_admin_referer('wporgcd_ladders_nonce')) {
-        if (!empty($_FILES['import_file']['tmp_name'])) {
-            $json = file_get_contents($_FILES['import_file']['tmp_name']);
+    if ( isset( $_POST['wporgcd_import_ladders'] ) && check_admin_referer( 'wporgcd_ladders_nonce' ) ) {
+        if ( ! empty( $_FILES['import_file']['tmp_name'] ) ) {
+            // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Reading JSON file content
+            $json = file_get_contents( $_FILES['import_file']['tmp_name'] );
             $data = json_decode($json, true);
             if (json_last_error() !== JSON_ERROR_NONE) {
                 $message = '<div class="notice notice-error"><p>Invalid JSON format.</p></div>';
@@ -200,9 +206,9 @@ function wporgcd_render_ladders_page() {
     }
     
     // Handle add new ladder
-    if (isset($_POST['wporgcd_add_ladder']) && check_admin_referer('wporgcd_ladders_nonce')) {
-        $new_id = sanitize_key($_POST['new_ladder_id']);
-        $new_title = sanitize_text_field($_POST['new_ladder_title']);
+    if ( isset( $_POST['wporgcd_add_ladder'] ) && check_admin_referer( 'wporgcd_ladders_nonce' ) ) {
+        $new_id = isset( $_POST['new_ladder_id'] ) ? sanitize_key( wp_unslash( $_POST['new_ladder_id'] ) ) : '';
+        $new_title = isset( $_POST['new_ladder_title'] ) ? sanitize_text_field( wp_unslash( $_POST['new_ladder_title'] ) ) : '';
         
         if (empty($new_id) || empty($new_title)) {
             $message = '<div class="notice notice-error"><p>Both ID and Title are required.</p></div>';
@@ -216,10 +222,12 @@ function wporgcd_render_ladders_page() {
     }
     
     // Handle update ladders (respects order and deletions)
-    if (isset($_POST['wporgcd_update_ladders']) && check_admin_referer('wporgcd_ladders_nonce')) {
+    if ( isset( $_POST['wporgcd_update_ladders'] ) && check_admin_referer( 'wporgcd_ladders_nonce' ) ) {
         $new_ladders = array();
-        $ladder_ids = $_POST['ladder_ids'] ?? array();
-        $ladder_data = $_POST['ladders'] ?? array();
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Sanitized inside loop
+        $ladder_ids = isset( $_POST['ladder_ids'] ) ? $_POST['ladder_ids'] : array();
+        // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized, WordPress.Security.ValidatedSanitizedInput.MissingUnslash -- Sanitized inside loop
+        $ladder_data = isset( $_POST['ladders'] ) ? $_POST['ladders'] : array();
         
         // Process in order of ladder_ids (preserves drag-drop order)
         foreach ($ladder_ids as $id) {
@@ -262,7 +270,10 @@ function wporgcd_render_ladders_page() {
             <input type="hidden" name="wporgcd_import_ladders" value="1">
         </form>
         <hr class="wp-header-end">
-        <?php echo $message; ?>
+        <?php
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $message contains safe HTML from this function
+        echo $message;
+        ?>
         
         <!-- Add New Ladder -->
         <div style="background: #fff; border: 1px solid #ddd; padding: 20px; margin: 20px 0;">

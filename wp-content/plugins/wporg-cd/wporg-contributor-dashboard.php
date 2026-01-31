@@ -4,6 +4,8 @@
  * Description: Store contributor events and assign them to contributor ladders
  * Version: 1.0.0
  * Author: WordPress.org
+ * License: GPL-2.0-or-later
+ * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  */
 
 if (!defined('ABSPATH')) exit;
@@ -39,7 +41,7 @@ function wporgcd_render_admin_dashboard() {
     ?>
     <div class="wrap">
         <h1>Contributor Dashboard</h1>
-        <p><a href="<?php echo home_url(); ?>" class="button button-primary" target="_blank">View Dashboard →</a></p>
+        <p><a href="<?php echo esc_url( home_url() ); ?>" class="button button-primary" target="_blank">View Dashboard →</a></p>
     </div>
     <?php
 }

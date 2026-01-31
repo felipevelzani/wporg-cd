@@ -54,20 +54,26 @@ function wporgcd_generate_dashboard_cache() {
  * Render the dashboard (serves cached HTML, or live with ?preview).
  */
 function wporgcd_render_frontend_dashboard() {
-    if (is_admin()) return;
+    if ( is_admin() ) {
+        return;
+    }
     
-    $is_admin = current_user_can('manage_options');
-    $include_inactive = isset($_GET['all']) && $is_admin;
+    $is_admin = current_user_can( 'manage_options' );
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only filter, no state changes
+    $include_inactive = isset( $_GET['all'] ) && $is_admin;
     
     // Validate and get date range parameter
     $date_ranges = wporgcd_get_date_ranges();
-    $range_key = isset($_GET['range']) && array_key_exists($_GET['range'], $date_ranges) 
-        ? $_GET['range'] 
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended, WordPress.Security.ValidatedSanitizedInput.MissingUnslash, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- Read-only filter validated against whitelist
+    $range_key = isset( $_GET['range'] ) && array_key_exists( $_GET['range'], $date_ranges ) 
+        ? sanitize_key( $_GET['range'] ) 
         : 'all_time';
     
     // ?preview bypasses cache for testing (admins only)
-    if (isset($_GET['preview']) && $is_admin) {
-        echo wporgcd_build_dashboard_html($include_inactive, $range_key);
+    // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Admin-only preview mode
+    if ( isset( $_GET['preview'] ) && $is_admin ) {
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Output is escaped within wporgcd_build_dashboard_html
+        echo wporgcd_build_dashboard_html( $include_inactive, $range_key );
         exit;
     }
     
@@ -77,7 +83,8 @@ function wporgcd_render_frontend_dashboard() {
         : "wporgcd_dashboard_cache_{$range_key}";
     $cached = get_option($cache_key);
     
-    if ($cached) {
+    if ( $cached ) {
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- Cached HTML was escaped when generated
         echo $cached;
         exit;
     }
@@ -86,9 +93,9 @@ function wporgcd_render_frontend_dashboard() {
     wp_die(
         '<h1>Contributor Dashboard</h1>' .
         '<p>Dashboard not yet generated.</p>' .
-        '<p><a href="' . admin_url('admin.php?page=contributor-profiles') . '">Generate profiles</a> to build the dashboard.</p>',
+        '<p><a href="' . esc_url( admin_url( 'admin.php?page=contributor-profiles' ) ) . '">Generate profiles</a> to build the dashboard.</p>',
         'Dashboard Not Ready',
-        array('response' => 200)
+        array( 'response' => 200 )
     );
 }
     
@@ -114,12 +121,14 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
     $status_filter = $filters['where'];
     $combined_filter_and = $filters['and'];
     
-    $profile_count = $wpdb->get_var("SELECT COUNT(*) FROM $profiles_table" . $status_filter);
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+    // All queries below use $profiles_table from wporgcd_get_table() which is safe, and filters from wporgcd_build_profile_filters() which are safe
+    $profile_count = $wpdb->get_var( "SELECT COUNT(*) FROM $profiles_table" . $status_filter );
     $total_contributors = (int) $profile_count;
-    $total_events = (int) $wpdb->get_var("SELECT SUM(total_events) FROM $profiles_table" . $status_filter);
+    $total_events = (int) $wpdb->get_var( "SELECT SUM(total_events) FROM $profiles_table" . $status_filter );
     
     // Status breakdown
-    $status_counts = $wpdb->get_results("SELECT status, COUNT(*) as count FROM $profiles_table" . $status_filter . " GROUP BY status");
+    $status_counts = $wpdb->get_results( "SELECT status, COUNT(*) as count FROM $profiles_table" . $status_filter . " GROUP BY status" );
     $active_contributors = $warning_contributors = $inactive_contributors = 0;
     foreach ($status_counts as $row) {
         switch ($row->status) {
@@ -129,9 +138,9 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
         }
     }
     
-    $avg_events = $wpdb->get_var("SELECT AVG(total_events) FROM $profiles_table" . $status_filter);
-    $single_event = (int) $wpdb->get_var("SELECT COUNT(*) FROM $profiles_table WHERE total_events = 1" . $combined_filter_and);
-    $ten_plus_events = (int) $wpdb->get_var("SELECT COUNT(*) FROM $profiles_table WHERE total_events > 10" . $combined_filter_and);
+    $avg_events = $wpdb->get_var( "SELECT AVG(total_events) FROM $profiles_table" . $status_filter );
+    $single_event = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $profiles_table WHERE total_events = 1" . $combined_filter_and );
+    $ten_plus_events = (int) $wpdb->get_var( "SELECT COUNT(*) FROM $profiles_table WHERE total_events > 10" . $combined_filter_and );
     
     // Date ranges for footer (from events table)
     $data_start_date = wporgcd_get_reference_start_date();
@@ -149,7 +158,7 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
     // Event distribution + first event counts
     $event_distribution = array();
     $first_event_counts = array();
-    $profiles = $wpdb->get_results("SELECT event_counts FROM $profiles_table" . $status_filter);
+    $profiles = $wpdb->get_results( "SELECT event_counts FROM $profiles_table" . $status_filter );
     foreach ($profiles as $p) {
         $counts = json_decode($p->event_counts, true);
         if (is_array($counts)) {
@@ -179,11 +188,11 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
     
     // New contributors in last 30 days (based on registered_date relative to reference date)
     $reference_end = wporgcd_get_reference_end_date();
-    $thirty_days_ago = date('Y-m-d', strtotime($reference_end . ' -30 days'));
-    $new_contributors_30d = (int) $wpdb->get_var($wpdb->prepare(
+    $thirty_days_ago = gmdate( 'Y-m-d', strtotime( $reference_end . ' -30 days' ) );
+    $new_contributors_30d = (int) $wpdb->get_var( $wpdb->prepare(
         "SELECT COUNT(*) FROM $profiles_table WHERE registered_date >= %s" . $combined_filter_and,
         $thirty_days_ago
-    ));
+    ) );
     
     // Year-over-year comparison: last 90 days vs same period last year
     // Only calculate if we have at least 1 year + 90 days of data
@@ -193,25 +202,25 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
     $new_contributors_90d = 0;
     $new_contributors_90d_lastyear = 0;
     
-    if ($has_yoy_data) {
-        $ninety_days_ago = date('Y-m-d', strtotime($reference_end . ' -90 days'));
+    if ( $has_yoy_data ) {
+        $ninety_days_ago = gmdate( 'Y-m-d', strtotime( $reference_end . ' -90 days' ) );
         // Count users who registered AND had first activity within the same 90-day period
         // This makes it a fair comparison (both periods have same "time to contribute")
-        $new_contributors_90d = (int) $wpdb->get_var($wpdb->prepare(
+        $new_contributors_90d = (int) $wpdb->get_var( $wpdb->prepare(
             "SELECT COUNT(*) FROM $profiles_table 
              WHERE registered_date >= %s AND registered_date <= %s
              AND first_activity >= %s AND first_activity <= %s",
             $ninety_days_ago, $reference_end, $ninety_days_ago, $reference_end
-        ));
+        ) );
         
-        $last_year_end = date('Y-m-d', strtotime($reference_end . ' -1 year'));
-        $last_year_start = date('Y-m-d', strtotime($last_year_end . ' -90 days'));
-        $new_contributors_90d_lastyear = (int) $wpdb->get_var($wpdb->prepare(
+        $last_year_end = gmdate( 'Y-m-d', strtotime( $reference_end . ' -1 year' ) );
+        $last_year_start = gmdate( 'Y-m-d', strtotime( $last_year_end . ' -90 days' ) );
+        $new_contributors_90d_lastyear = (int) $wpdb->get_var( $wpdb->prepare(
             "SELECT COUNT(*) FROM $profiles_table 
              WHERE registered_date >= %s AND registered_date <= %s
              AND first_activity >= %s AND first_activity <= %s",
             $last_year_start, $last_year_end, $last_year_start, $last_year_end
-        ));
+        ) );
         
     }
     
@@ -230,15 +239,16 @@ function wporgcd_build_dashboard_html($include_inactive = false, $range_key = 'a
             );
         }
         
-    foreach (array_keys($ladders) as $lid) {
-        if (isset($ladder_stats[$lid])) {
-            $avg = $wpdb->get_var($wpdb->prepare(
+    foreach ( array_keys( $ladders ) as $lid ) {
+        if ( isset( $ladder_stats[ $lid ] ) ) {
+            $avg = $wpdb->get_var( $wpdb->prepare(
                 "SELECT AVG(DATEDIFF(%s, JSON_UNQUOTE(JSON_EXTRACT(JSON_EXTRACT(ladder_journey, CONCAT('\$[', JSON_LENGTH(ladder_journey) - 1, ']')), '\$.step_joined'))))
                  FROM $profiles_table WHERE current_ladder = %s" . $combined_filter_and, $reference_end, $lid
-            ));
-            $ladder_stats[$lid]['avg_days'] = $avg ? round($avg) : 0;
+            ) );
+            $ladder_stats[ $lid ]['avg_days'] = $avg ? round( $avg ) : 0;
         }
     }
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
     
     ob_start();
     ?>
@@ -364,7 +374,7 @@ section { margin-bottom: 40px; }
                 <div class="card stat">
                     <div class="stat-val yellow"><?php echo number_format($single_event); ?></div>
                     <div class="stat-lbl">One-time Contributors</div>
-                    <div class="stat-detail"><?php echo $total_contributors > 0 ? round(($single_event / $total_contributors) * 100) : 0; ?>% drop-off risk</div>
+                    <div class="stat-detail"><?php echo esc_html( $total_contributors > 0 ? round( ( $single_event / $total_contributors ) * 100 ) : 0 ); ?>% drop-off risk</div>
                         </div>
                     </div>
                 </section>
@@ -395,12 +405,12 @@ section { margin-bottom: 40px; }
                             <?php endif; ?>
                         </div>
                         <div class="funnel-bar-wrap">
-                            <div class="funnel-bar" style="width: <?php echo $w; ?>%"><?php echo number_format($cnt); ?></div>
+                            <div class="funnel-bar" style="width: <?php echo esc_attr( $w ); ?>%"><?php echo esc_html( number_format( $cnt ) ); ?></div>
                                             </div>
                         <div class="funnel-info">
-                            <?php if ($cnt > 0): ?>
-                                <span class="active"><?php echo $s['active_count']; ?> active</span>
-                                <?php if ($s['warning_count'] > 0): ?><span class="risk"><?php echo $s['warning_count']; ?> at risk</span><?php endif; ?>
+                            <?php if ( $cnt > 0 ) : ?>
+                                <span class="active"><?php echo esc_html( $s['active_count'] ); ?> active</span>
+                                <?php if ( $s['warning_count'] > 0 ) : ?><span class="risk"><?php echo esc_html( $s['warning_count'] ); ?> at risk</span><?php endif; ?>
                                             <?php else: ?>
                                 <span style="font-style: italic;">No contributors yet</span>
                                             <?php endif; ?>
@@ -410,7 +420,7 @@ section { margin-bottom: 40px; }
                         $ns = $ladder_stats[$lids[$i + 1]] ?? array('count' => 0);
                         $conv = $cnt > 0 ? round(($ns['count'] / $cnt) * 100) : 0;
                     ?>
-                    <div class="funnel-arrow">↓ <?php echo $conv; ?>% progress<?php if ($days > 0): ?> <span style="color: var(--light);">(~<?php echo $days; ?>d avg)</span><?php endif; ?></div>
+                    <div class="funnel-arrow">↓ <?php echo esc_html( $conv ); ?>% progress<?php if ( $days > 0 ) : ?> <span style="color: var(--light);">(~<?php echo esc_html( $days ); ?>d avg)</span><?php endif; ?></div>
                                     <?php endif; ?>
                                 <?php endforeach; ?>
                                 
@@ -491,8 +501,8 @@ section { margin-bottom: 40px; }
                 
         <div class="footer">
             <div style="margin-bottom: 8px;">
-                <?php echo number_format($profile_count); ?> profiles<?php echo $include_inactive ? '' : ' (active only)'; ?><?php echo $range['days'] !== null ? ' · Registered: ' . esc_html($range['label']) : ''; ?>
-                · Data: <?php echo date('M j, Y', strtotime($data_start_date)); ?> – <?php echo date('M j, Y', strtotime($data_end_date)); ?>
+                <?php echo esc_html( number_format( $profile_count ) ); ?> profiles<?php echo $include_inactive ? '' : ' (active only)'; ?><?php echo $range['days'] !== null ? ' · Registered: ' . esc_html( $range['label'] ) : ''; ?>
+                · Data: <?php echo esc_html( gmdate( 'M j, Y', strtotime( $data_start_date ) ) ); ?> – <?php echo esc_html( gmdate( 'M j, Y', strtotime( $data_end_date ) ) ); ?>
             </div>
             <a href="https://github.com/felipevelzani/wporg-cd" target="_blank">GitHub</a>
             <span style="margin: 0 8px;">·</span>

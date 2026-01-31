@@ -46,8 +46,9 @@ function wporgcd_process_csv_import_batch() {
         return;
     }
     
-    $handle = fopen($file_path, 'r');
-    if (!$handle) {
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Need fgetcsv functionality
+    $handle = fopen( $file_path, 'r' );
+    if ( ! $handle ) {
         return;
     }
     
@@ -79,7 +80,8 @@ function wporgcd_process_csv_import_batch() {
         $processed_in_batch++;
     }
     
-    fclose($handle);
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+    fclose( $handle );
     
     // Import the batch using core function
     if (!empty($events)) {
@@ -96,8 +98,8 @@ function wporgcd_process_csv_import_batch() {
         $state['status'] = 'completed';
         $state['completed_at'] = current_time('mysql');
         
-        if (file_exists($file_path)) {
-            unlink($file_path);
+        if ( file_exists( $file_path ) ) {
+            wp_delete_file( $file_path );
         }
         
         // Update reference date from new events
@@ -124,11 +126,11 @@ function wporgcd_render_import_page() {
     $message = '';
     
     // Handle form submissions
-    if (isset($_POST['wporgcd_start_import']) && check_admin_referer('wporgcd_import_nonce')) {
-        if (!isset($_FILES['csv_file']) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK) {
+    if ( isset( $_POST['wporgcd_start_import'] ) && check_admin_referer( 'wporgcd_import_nonce' ) ) {
+        if ( ! isset( $_FILES['csv_file'] ) || ! isset( $_FILES['csv_file']['error'] ) || $_FILES['csv_file']['error'] !== UPLOAD_ERR_OK ) {
             $message = '<div class="notice notice-error"><p>Please select a CSV file to upload.</p></div>';
         } else {
-            $result = wporgcd_start_csv_import($_FILES['csv_file']);
+            $result = wporgcd_start_csv_import( $_FILES['csv_file'] ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- File handling done in function
             if (is_wp_error($result)) {
                 $message = '<div class="notice notice-error"><p>' . esc_html($result->get_error_message()) . '</p></div>';
             } else {
@@ -142,8 +144,9 @@ function wporgcd_render_import_page() {
         $message = '<div class="notice notice-warning"><p>Import cancelled.</p></div>';
     }
     
-    if (isset($_POST['wporgcd_clear_all']) && check_admin_referer('wporgcd_import_nonce')) {
-        $wpdb->query("TRUNCATE TABLE $table_name");
+    if ( isset( $_POST['wporgcd_clear_all'] ) && check_admin_referer( 'wporgcd_import_nonce' ) ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_name is safe from wporgcd_get_table()
+        $wpdb->query( "TRUNCATE TABLE $table_name" );
         $message = '<div class="notice notice-success"><p>All events have been deleted.</p></div>';
     }
     
@@ -154,7 +157,10 @@ function wporgcd_render_import_page() {
     <div class="wrap">
         <h1>Import Events</h1>
         
-        <?php echo $message; ?>
+        <?php
+        // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- $message contains safe HTML from this function
+        echo $message;
+        ?>
         
         <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 20px; margin-top: 20px;">
             <div style="background: #fff; border: 1px solid #ddd; padding: 20px;">
@@ -169,11 +175,11 @@ function wporgcd_render_import_page() {
                     ?>
                     
                     <div style="background: #ddd; border-radius: 4px; height: 24px; overflow: hidden; margin: 15px 0;">
-                        <div style="background: #0073aa; height: 100%; width: <?php echo $progress; ?>%;"></div>
+                        <div style="background: #0073aa; height: 100%; width: <?php echo esc_attr( $progress ); ?>%;"></div>
                     </div>
                     
                     <p style="font-size: 16px;">
-                        <strong><?php echo $progress; ?>%</strong> complete
+                        <strong><?php echo esc_html( $progress ); ?>%</strong> complete
                         (<?php echo number_format($current_import['processed']); ?> / <?php echo number_format($current_import['total_rows']); ?> rows)
                     </p>
                     
@@ -200,7 +206,7 @@ function wporgcd_render_import_page() {
                         Imported: <strong><?php echo number_format($current_import['imported']); ?></strong>
                     </p>
                     
-                    <p><a href="<?php echo admin_url('admin.php?page=contributor-import'); ?>" class="button button-primary">Start New Import</a></p>
+                    <p><a href="<?php echo esc_url( admin_url( 'admin.php?page=contributor-import' ) ); ?>" class="button button-primary">Start New Import</a></p>
                     
                 <?php else: ?>
                     <h2 style="margin-top: 0;">Upload CSV File</h2>
@@ -263,33 +269,38 @@ function wporgcd_start_csv_import($file) {
     $import_id = 'import_' . time();
     $file_path = $import_dir . '/' . $import_id . '.csv';
     
-    if (!move_uploaded_file($file['tmp_name'], $file_path)) {
-        return new WP_Error('upload_failed', 'Failed to save file.');
+    // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- $file['tmp_name'] is from $_FILES and checked by wp_check_filetype above
+    $tmp_name = $file['tmp_name'];
+    // phpcs:ignore Generic.PHP.ForbiddenFunctions.Found -- Using move_uploaded_file as this is a CSV import, not a media upload
+    if ( ! move_uploaded_file( $tmp_name, $file_path ) ) {
+        return new WP_Error( 'upload_failed', 'Failed to save file.' );
     }
     
     // Count lines and detect header
     $total_lines = 0;
     $is_header = false;
-    $handle = fopen($file_path, 'r');
+    // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- Need fgetcsv functionality
+    $handle = fopen( $file_path, 'r' );
     
-    if ($handle) {
-        $first_line = fgets($handle);
-        $is_header = wporgcd_is_csv_header($first_line);
+    if ( $handle ) {
+        $first_line = fgets( $handle );
+        $is_header = wporgcd_is_csv_header( $first_line );
         
-        while (fgets($handle) !== false) {
+        while ( fgets( $handle ) !== false ) {
             $total_lines++;
         }
         
-        if (!$is_header) {
+        if ( ! $is_header ) {
             $total_lines++;
         }
         
-        fclose($handle);
+        // phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fclose
+        fclose( $handle );
     }
     
-    if ($total_lines === 0) {
-        unlink($file_path);
-        return new WP_Error('empty_file', 'CSV file is empty.');
+    if ( $total_lines === 0 ) {
+        wp_delete_file( $file_path );
+        return new WP_Error( 'empty_file', 'CSV file is empty.' );
     }
     
     // Create import state using core function
@@ -317,12 +328,12 @@ function wporgcd_cancel_csv_import() {
     wp_clear_scheduled_hook('wporgcd_cron_process_import');
     
     // Update state
-    if ($state) {
+    if ( $state ) {
         $state['status'] = 'cancelled';
-        wporgcd_update_import_state($import_id, $state);
+        wporgcd_update_import_state( $import_id, $state );
         
-        if (isset($state['file_path']) && file_exists($state['file_path'])) {
-            unlink($state['file_path']);
+        if ( isset( $state['file_path'] ) && file_exists( $state['file_path'] ) ) {
+            wp_delete_file( $state['file_path'] );
         }
     }
     
@@ -335,18 +346,19 @@ function wporgcd_cancel_csv_import() {
 function wporgcd_cleanup_csv_imports() {
     global $wpdb;
     
-    wp_clear_scheduled_hook('wporgcd_cron_process_import');
+    wp_clear_scheduled_hook( 'wporgcd_cron_process_import' );
     
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- One-time cleanup query
     $import_states = $wpdb->get_results(
         "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE 'wporgcd_import_state_%'"
     );
     
-    foreach ($import_states as $row) {
-        $state = get_option($row->option_name);
-        if ($state && isset($state['file_path']) && file_exists($state['file_path'])) {
-            @unlink($state['file_path']);
+    foreach ( $import_states as $row ) {
+        $state = get_option( $row->option_name );
+        if ( $state && isset( $state['file_path'] ) && file_exists( $state['file_path'] ) ) {
+            wp_delete_file( $state['file_path'] );
         }
-        delete_option($row->option_name);
+        delete_option( $row->option_name );
     }
     
     wporgcd_set_current_import(null);
