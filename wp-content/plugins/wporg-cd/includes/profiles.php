@@ -161,7 +161,8 @@ function wporgcd_process_profile_batch() {
     
     // Get batch of unique contributor IDs that need profile updates
     // Only include users who have at least one event that isn't 'updated_profile'
-    $user_ids = $wpdb->get_col($wpdb->prepare(
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table names are safe from wporgcd_get_table(), $date_filter is from prepare()
+    $user_ids = $wpdb->get_col( $wpdb->prepare(
         "SELECT DISTINCT e.contributor_id 
          FROM $events_table e
          LEFT JOIN $profiles_table p ON e.contributor_id = p.user_id
@@ -170,7 +171,7 @@ function wporgcd_process_profile_batch() {
          $date_filter
          LIMIT %d",
         WPORGCD_PROFILE_BATCH_SIZE
-    ));
+    ) );
     
     if (empty($user_ids)) {
         // All done!
@@ -222,15 +223,16 @@ function wporgcd_compute_user_profile($user_id, $ladders = null) {
     $ignored_placeholders = implode(',', array_fill(0, count($ignored_event_types), '%s'));
     
     // Get all events for this user, ordered by date (excluding ignored types)
-    $query_args = array_merge(array($user_id), $ignored_event_types);
-    $events = $wpdb->get_results($wpdb->prepare(
+    $query_args = array_merge( array( $user_id ), $ignored_event_types );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name and placeholders are safe
+    $events = $wpdb->get_results( $wpdb->prepare(
         "SELECT event_id, event_type, event_created_date, contributor_created_date
          FROM $events_table 
          WHERE contributor_id = %s 
          AND event_type NOT IN ($ignored_placeholders)
          ORDER BY event_created_date ASC",
         $query_args
-    ));
+    ) );
     
     if (empty($events)) {
         return; // No events for this user
@@ -275,10 +277,11 @@ function wporgcd_compute_user_profile($user_id, $ladders = null) {
     $status = wporgcd_compute_status($last_activity);
     
     // Upsert profile
-    $existing = $wpdb->get_var($wpdb->prepare(
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
+    $existing = $wpdb->get_var( $wpdb->prepare(
         "SELECT id FROM $profiles_table WHERE user_id = %s",
         $user_id
-    ));
+    ) );
     
     $profile_data = array(
         'user_id' => $user_id,
@@ -293,7 +296,8 @@ function wporgcd_compute_user_profile($user_id, $ladders = null) {
         'profile_computed_at' => current_time('mysql'),
     );
     
-    if ($existing) {
+    if ( $existing ) {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching
         $wpdb->update(
             $profiles_table,
             $profile_data,
@@ -302,10 +306,11 @@ function wporgcd_compute_user_profile($user_id, $ladders = null) {
             array('%d')
         );
     } else {
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
         $wpdb->insert(
             $profiles_table,
             $profile_data,
-            array('%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s')
+            array( '%s', '%s', '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' )
         );
     }
 }
@@ -532,10 +537,11 @@ function wporgcd_get_profile($user_id) {
     global $wpdb;
     $table_name = wporgcd_get_table('profiles');
     
-    $profile = $wpdb->get_row($wpdb->prepare(
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
+    $profile = $wpdb->get_row( $wpdb->prepare(
         "SELECT * FROM $table_name WHERE user_id = %s",
         $user_id
-    ));
+    ) );
     
     if ($profile) {
         $profile->ladder_journey = json_decode($profile->ladder_journey, true);
@@ -556,8 +562,10 @@ function wporgcd_get_profile_stats() {
     $profiles_table = wporgcd_get_table('profiles');
     $events_table = wporgcd_get_table('events');
     
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // All table names below are safe from wporgcd_get_table()
     $stats = array(
-        'total_profiles' => (int) $wpdb->get_var("SELECT COUNT(*) FROM $profiles_table"),
+        'total_profiles' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM $profiles_table" ),
         'by_ladder' => array(),
         'by_status' => array(
             'active' => 0,
@@ -614,6 +622,8 @@ function wporgcd_get_profile_stats() {
          $date_filter"
     );
     
+    // phpcs:enable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    
     // Include filter info
     $stats['min_registered_date'] = $min_date;
     
@@ -625,8 +635,9 @@ function wporgcd_get_profile_stats() {
  */
 function wporgcd_delete_all_profiles() {
     global $wpdb;
-    $table_name = wporgcd_get_table('profiles');
-    return $wpdb->query("TRUNCATE TABLE $table_name");
+    $table_name = wporgcd_get_table( 'profiles' );
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- Table name is safe
+    return $wpdb->query( "TRUNCATE TABLE $table_name" );
 }
 
 // ============================================================================
@@ -656,6 +667,8 @@ function wporgcd_start_profile_generation() {
     
     // Count how many profiles need to be created/updated (filtered by date)
     // Only count users who have at least one event that isn't 'updated_profile'
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // Table names and filters are safe
     $total_contributors = (int) $wpdb->get_var(
         "SELECT COUNT(DISTINCT contributor_id) FROM $events_table WHERE event_type != 'updated_profile' $date_filter"
     );
@@ -672,6 +685,7 @@ function wporgcd_start_profile_generation() {
          AND e.event_type != 'updated_profile'
          $date_filter_where"
     );
+    // phpcs:enable
     
     // Snapshot current ladders to ensure consistency across all batches
     $ladders_snapshot = wporgcd_get_ladders();

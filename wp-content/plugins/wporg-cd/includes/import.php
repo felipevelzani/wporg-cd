@@ -48,14 +48,15 @@ function wporgcd_validate_event($event) {
  * @param string $event_id The event ID to check
  * @return bool True if exists, false otherwise
  */
-function wporgcd_event_exists($event_id) {
+function wporgcd_event_exists( $event_id ) {
     global $wpdb;
-    $table_name = wporgcd_get_table('events');
+    $table_name = wporgcd_get_table( 'events' );
     
-    $exists = $wpdb->get_var($wpdb->prepare(
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $table_name is safe from wporgcd_get_table()
+    $exists = $wpdb->get_var( $wpdb->prepare(
         "SELECT internal_id FROM $table_name WHERE event_id = %s",
         $event_id
-    ));
+    ) );
     
     return (bool) $exists;
 }
@@ -108,7 +109,8 @@ function wporgcd_insert_event($event) {
         $insert_formats[] = '%s';
     }
     
-    $result = $wpdb->insert($table_name, $insert_data, $insert_formats);
+    // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery -- Inserting event data
+    $result = $wpdb->insert( $table_name, $insert_data, $insert_formats );
     
     if ($result === false) {
         return new WP_Error(

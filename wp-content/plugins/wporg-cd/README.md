@@ -1,8 +1,17 @@
 # Contributor Dashboard
 
+Contributors: WordPress.org
+Tags: contributors, dashboard, analytics
+Requires at least: 6.0
+Tested up to: 6.7
+Stable tag: 1.0.0
+Requires PHP: 7.4
+License: GPL-2.0-or-later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
 A WordPress plugin for tracking contributor activity and visualizing engagement across progression ladders.
 
-## Architecture
+## Description
 
 The plugin uses a three-tier data model where each layer caches the computation of the previous:
 

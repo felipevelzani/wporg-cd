@@ -66,10 +66,11 @@ function wporgcd_build_profile_filters($options = array()) {
     $conditions = array();
     
     // Date filter
-    if ($options['range_days'] !== null) {
+    if ( $options['range_days'] !== null ) {
         $reference_end = wporgcd_get_reference_end_date();
-        $cutoff_date = date('Y-m-d', strtotime($reference_end . " -{$options['range_days']} days"));
-        $conditions[] = $wpdb->prepare("{$options['date_column']} >= %s", $cutoff_date);
+        $cutoff_date = gmdate( 'Y-m-d', strtotime( $reference_end . " -{$options['range_days']} days" ) );
+        // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- $options['date_column'] is from trusted internal defaults
+        $conditions[] = $wpdb->prepare( "{$options['date_column']} >= %s", $cutoff_date );
     }
     
     // Status filter

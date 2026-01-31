@@ -35,14 +35,17 @@ function wporgcd_set_reference_date_from_events() {
     global $wpdb;
     $events_table = wporgcd_get_table('events');
     
-    $latest = $wpdb->get_var("SELECT MAX(event_created_date) FROM $events_table");
-    $oldest = $wpdb->get_var("SELECT MIN(event_created_date) FROM $events_table");
+    // phpcs:disable WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching, WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+    // $events_table is safe from wporgcd_get_table()
+    $latest = $wpdb->get_var( "SELECT MAX(event_created_date) FROM $events_table" );
+    $oldest = $wpdb->get_var( "SELECT MIN(event_created_date) FROM $events_table" );
+    // phpcs:enable
     
-    if ($latest) {
-        update_option('wporgcd_reference_end_date', date('Y-m-d', strtotime($latest)));
+    if ( $latest ) {
+        update_option( 'wporgcd_reference_end_date', gmdate( 'Y-m-d', strtotime( $latest ) ) );
     }
-    if ($oldest) {
-        update_option('wporgcd_reference_start_date', date('Y-m-d', strtotime($oldest)));
+    if ( $oldest ) {
+        update_option( 'wporgcd_reference_start_date', gmdate( 'Y-m-d', strtotime( $oldest ) ) );
     }
 }
 

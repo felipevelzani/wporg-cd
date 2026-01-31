@@ -428,7 +428,7 @@ section { margin-bottom: 40px; }
                     <div class="funnel-row" style="margin-top: 20px; opacity: 0.6;">
                         <span class="funnel-lbl" style="font-style: italic;">No Ladder</span>
                         <div class="funnel-bar-wrap">
-                            <div class="funnel-bar" style="width: <?php echo max(15, round(($ladder_stats['none']['count'] / $total_contributors) * 100)); ?>%; background: var(--light);"><?php echo number_format($ladder_stats['none']['count']); ?></div>
+                            <div class="funnel-bar" style="width: <?php echo esc_attr( max( 15, round( ( $ladder_stats['none']['count'] / $total_contributors ) * 100 ) ) ); ?>%; background: var(--light);"><?php echo esc_html( number_format( $ladder_stats['none']['count'] ) ); ?></div>
                                         </div>
                         <div class="funnel-info"><span style="font-style: italic;">Haven't met requirements</span></div>
                             </div>
@@ -444,17 +444,17 @@ section { margin-bottom: 40px; }
                         <h3>Key Insights</h3>
                 <?php if ($avg_time_to_first !== null): ?>
                 <div class="insight">
-                    <span>Average <strong><?php echo round($avg_time_to_first); ?> days</strong> from account creation to first contribution.</span>
+                    <span>Average <strong><?php echo esc_html( round( $avg_time_to_first ) ); ?> days</strong> from account creation to first contribution.</span>
                     <span class="info-icon">i<span class="info-tip">Days between WordPress.org account registration and first recorded contribution event.</span></span>
                 </div>
                 <?php endif; ?>
                 <div class="insight">
-                    <span><strong><?php echo $active_contributors; ?></strong> contributors active (<?php echo round(($active_contributors / $total_contributors) * 100); ?>%).<?php if ($warning_contributors > 0): ?> <strong><?php echo $warning_contributors; ?></strong> at risk.<?php endif; ?></span>
+                    <span><strong><?php echo esc_html( $active_contributors ); ?></strong> contributors active (<?php echo esc_html( round( ( $active_contributors / $total_contributors ) * 100 ) ); ?>%).<?php if ( $warning_contributors > 0 ) : ?> <strong><?php echo esc_html( $warning_contributors ); ?></strong> at risk.<?php endif; ?></span>
                     <span class="info-icon">i<span class="info-tip"><strong>Active:</strong> contributed in the last 30 days.<br><strong>At risk:</strong> last activity was 30-90 days ago.</span></span>
                 </div>
                 <?php if ($ten_plus_events > 0): ?>
                 <div class="insight">
-                    <span><strong><?php echo number_format($ten_plus_events); ?></strong> contributors with 10+ contributions (<?php echo round(($ten_plus_events / $total_contributors) * 100); ?>%).</span>
+                    <span><strong><?php echo esc_html( number_format( $ten_plus_events ) ); ?></strong> contributors with 10+ contributions (<?php echo esc_html( round( ( $ten_plus_events / $total_contributors ) * 100 ) ); ?>%).</span>
                     <span class="info-icon">i<span class="info-tip">Contributors who have made more than 10 contribution events.</span></span>
                 </div>
                 <?php endif; ?>
@@ -472,7 +472,7 @@ section { margin-bottom: 40px; }
                     $yoy_arrow = $yoy_change >= 0 ? '↑' : '↓';
                 ?>
                 <div class="insight">
-                    <span><span style="color: <?php echo $yoy_color; ?>"><?php echo $yoy_arrow; ?> <?php echo abs($yoy_pct); ?>%</span> new contributors vs last year (last 90 days).</span>
+                    <span><span style="color: <?php echo esc_attr( $yoy_color ); ?>"><?php echo esc_html( $yoy_arrow ); ?> <?php echo esc_html( abs( $yoy_pct ) ); ?>%</span> new contributors vs last year (last 90 days).</span>
                     <span class="info-icon">i<span class="info-tip">Compares users who registered AND made their first contribution within each 90-day period. This ensures a fair comparison by giving both periods the same "window of opportunity" to contribute.</span></span>
                 </div>
                 <?php endif; ?>
@@ -489,11 +489,11 @@ section { margin-bottom: 40px; }
                         $total_cnt = $event_distribution[$type] ?? 0;
                 ?>
                 <div class="item">
-                    <span class="item-rank"><?php echo $r; ?></span>
-                    <span class="item-name"><?php echo esc_html($title); ?></span>
-                    <span class="item-count"><?php echo number_format($first_cnt); ?></span>
-                    <div class="bar-wrap"><div class="bar" style="width: <?php echo $p; ?>%"></div></div>
-                    <span class="item-total" title="Total events of this type"><?php echo number_format($total_cnt); ?> total</span>
+                    <span class="item-rank"><?php echo esc_html( $r ); ?></span>
+                    <span class="item-name"><?php echo esc_html( $title ); ?></span>
+                    <span class="item-count"><?php echo esc_html( number_format( $first_cnt ) ); ?></span>
+                    <div class="bar-wrap"><div class="bar" style="width: <?php echo esc_attr( $p ); ?>%"></div></div>
+                    <span class="item-total" title="Total events of this type"><?php echo esc_html( number_format( $total_cnt ) ); ?> total</span>
                                 </div>
                 <?php endforeach; endif; ?>
                     </div>
